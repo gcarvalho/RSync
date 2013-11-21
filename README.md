@@ -16,6 +16,12 @@ In time, I'll add to this document better instructions, but for now this is what
 - Suports multiple hosts
 - Supports excludiing certain file patterns
 
+## Dependencies
+- You must have rsync installed, somewhere that "which rsync" will find it
+- You must have ssh setup, if you want to use it
+
+**WINDOWS USERS**: Sorry guys, this was written in a day and I haven't had a chance to even try to get it working on windows. Feel free to take a shot at getting it to work on windows and sending me the pull request.
+
 ## Installing it
 There are 2 ways install this plugin, none of which I'll explain, but I'll list them:
 
