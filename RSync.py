@@ -25,6 +25,7 @@ else:
 
 class RsyncTreeCommand(sublime_plugin.WindowCommand):
     def run(sef):
+        # I was trying to do this asynchronously, but this seems to fail ...
         sublime.set_timeout(
             STRSync(sublime.active_window().active_view()).sync_structure(), 
             2)
@@ -32,12 +33,14 @@ class RsyncTreeCommand(sublime_plugin.WindowCommand):
 
 class RsyncFileFromRemoteCommand(sublime_plugin.WindowCommand):
     def run(sef):
+        # I was trying to do this asynchronously, but this seems to fail ...
         sublime.set_timeout(
             STRSync(sublime.active_window().active_view()).sync_remote_local(), 
             2)
 
 class RsyncFileToRemoteCommand(sublime_plugin.WindowCommand):
     def run(sef):
+        # I was trying to do this asynchronously, but this seems to fail ...
         sublime.set_timeout(
             STRSync(sublime.active_window().active_view()).sync_local_remote(), 
             2)
@@ -46,15 +49,28 @@ class RsyncFileToRemoteCommand(sublime_plugin.WindowCommand):
 class RSyncCommand(sublime_plugin.EventListener):
     def on_load_async(self, view):
         STRSync(view).sync_remote_local()
-    def on_activated_async(self, view):
-        pass
     def on_post_save_async(self, view):
         STRSync(view).sync_local_remote()
-
+    def on_activated_async(self, view):
+        pass
 
 class STRSHost(dict):
-    def excludes(self):
-        return self.get('excludes', [])
+    def host_name(self):
+        return self.get('remote_host', False)
+    def user_name(self):
+        return self.get('remote_host', False)
+    def path(self):
+        return self.get('remote_path', False)
+
+    # def local_path(self):
+    #     return self.prefs('local_path')
+    # def use_ssh(self):
+    #     return self.prefs('use_ssh')
+    # def remote_is_master(self):
+    #     return self.prefs('remote_is_master')
+    # def delete_slave(self):
+    #     return self.prefs('delete_slave')
+
     def remote_path(self, relative_path=''):
         if self:
             path = os.path.normpath(self.get('remote_path','')) + relative_path
@@ -106,6 +122,7 @@ class STRSync:
 
     def sync_file(self, to_server=True):
         # Need to add some checks on whether file changed before syncing
+        # right now, we sync way too often...
         local_file = self.view.file_name()
         local_path = self.local_path()
         local_path = os.path.normpath(local_path) if local_path else ''
@@ -120,7 +137,11 @@ class STRSync:
                 return
             (first, second) = (local_file,remote_path) if to_server else (remote_path, local_file)
             call_params = self.call_params(this_host, to_server, [first, second])
-            self.run_rsync(call_params)
+            try:
+                self.view.set_status('_rsync_running', 'RSync: {}'.format(this_host.host_name) )
+                self.run_rsync(call_params)
+            finally:
+                self.view.erase_status('_rsync_running')
 
     def sync_structure(self):
         local_file = self.view.file_name()
@@ -137,7 +158,11 @@ class STRSync:
                 return
             (first, second) = (remote_path + '/', local_path) if self.remote_is_master() else (local_path + '/',remote_path)
             call_params = self.call_params(main_host, True, ['-r', first, second])
-            self.run_rsync(call_params)
+            try:
+                self.view.set_status('_rsync_running', 'RSync: {} [FULL SYNC]'.format(main_host.host_name) )
+                self.run_rsync(call_params)
+            finally:
+                self.view.erase_status('_rsync_running')
 
     def call_params(self, this_host, to_server=True, others=[]):
         call_params = [rsyncpath ,'-a']
@@ -150,13 +175,13 @@ class STRSync:
 
         #damn it, I've been coding in perl too long
         excludes = [ item for this_exclude in excludes for item in  ['--exclude', '{}'.format(this_exclude)]] 
+
         call_params.extend(excludes)
         call_params.extend(others)
         return call_params
 
 
     def run_rsync(self,call_params):
-        self.view.set_status('_rsync_running', 'RSyncing remote <=> local')
         result_mesg = ""
         try:
             p = Popen(call_params, stdout=PIPE, stderr=PIPE)
@@ -165,20 +190,14 @@ class STRSync:
             result_mesg = " EXCEPTION: \n{}\n".format(exc_err)
         if stderr:
             result_mesg += "RSyncing returned an error: \n{0}\n ... while syncing {1}".format(stderr.decode("utf-8") ," ".join(call_params))
-        else:
-            result_mesg += "RSynced {0} sucessfully ".format(" ".join(call_params))
-        self.show_temp_message(result_mesg, stderr)
-        self.view.erase_status('_rsync_running')
+        self.show_panel_message(result_mesg)
 
-    def show_temp_message(self, message, popup=False):
-        if self.view and popup:
+    def show_panel_message(self, message):
+        if self.view:
             self.view.output_view = self.view.window().get_output_panel("textarea")
             self.view.window().run_command("show_panel", {"panel": "output.textarea"})
             self.view.output_view.set_read_only(False)
+            self.view.output_view.set_syntax_file("Packages/Plain Text/Plain Text.tmLanguage")
             self.view.output_view.run_command("append", {"characters": message})
             self.view.output_view.set_read_only(True)
-        else:
-            self.view.set_status('_rsync_message', message)
-            sublime.set_timeout(lambda:self.view.erase_status('_rsync_message'), 10000)
         print(message)
-
