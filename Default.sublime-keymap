@@ -1,0 +1,4 @@
+[
+    { "keys": ["super+shift+r"], "command": "rsync_tree" },
+    { "keys": ["super+shift+alt+r"], "command": "rsync_file_from_remote" },
+]

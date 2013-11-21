@@ -1,0 +1,14 @@
+[
+			{
+				"caption": "RSync: Synchronize the whole tree",
+				"command": "rsync_tree"
+			}, 
+			{
+				"caption": "RSync: Get the file from remote",
+				"command": "rsync_file_from_remote"
+			},
+			{
+				"caption": "RSync: Send the file to remote(s)",
+				"command": "rsync_file_to_remote"
+			}
+]

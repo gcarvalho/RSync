@@ -1,0 +1,48 @@
+{
+	// This file is here just to serve as an example of configuration parameters
+	// You really should override these...
+	// The plugin *will not* use this file
+
+	// You can have multiple hosts.
+	// Only one should be marked as "main", the plugin will choose the first
+	// if no "main" servers are found, the plugin will choose the last in the list
+	"strsync.hosts" : [
+		{
+			// hostname for your remote files
+            "remote_host" : "devserver1.test.com",
+			// username in remote server. 
+            "remote_user" : "jdoe",
+            // path in remote server. Mandatory
+            "remote_path" : "/usr/local/mywork",
+            // if this is the "main" server, used in remote-to-local sync
+            "main"		  : true,
+            "excludes" : []
+        },
+		{
+            "remote_host" : "devserver2.test.com",
+            "remote_user" : "jsmith",
+            "remote_path" : "/usr/local/jdoe_work",
+            // what do you want to exclude in sync to *this* host? 
+            // usual file patterns. 
+            // If you're using multiple servers and git, you might want to 
+            // exclude the .git dir from syncing with other servers
+            "excludes" : [ ".git", "*txt"]
+        }
+	],
+	// local path where your work files are located
+    "strsync.local_path" : "/Users/jdoe/work",
+    // what do you want to exclude from *all* syncs? usual file patterns. 
+    "strsync.excludes" : [],
+    // do you want to rsync over ssh. If you're using a remote server, you 
+    // really should use ssh...
+    "strsync.use_ssh"           : true,
+    // defines if the authoritative copy copy is in the remote host. If so, 
+    // syncing the tree will run from the host to local, deleting the local 
+    // files which aren't in the master.
+    // if false, the local is the master, and will be considered the 
+    // authoritative copy
+    "strsync.remote_is_master"  : true,
+    // if we should delete files not on the master
+    "strsync.delete_slave"      : true,
+
+}
