@@ -38,7 +38,7 @@ I recomend you do them in the project file for your work, rather then the genera
 After configuration is done, go to the Tools menu => RSync => Synchronise the whole tree.
 This will take a while, if your project is very big. Don't worry, it will be a lot faster after this first time.
 
-Now change a file and save it. If properly setup (and if you didn't stumble on an unknown bug), ot should show up on your remote host.
+Now change a file and save it. If properly setup (and if you didn't stumble on an unknown bug), it should show up on your remote host.
 
 
 ## To do
@@ -50,5 +50,7 @@ Now change a file and save it. If properly setup (and if you didn't stumble on a
 - sync tree on project open
 - some sort of configuration wizard would be nice...
 - add a "don't bug me for now" on error. When away from a network, saving gets annoying...
+- get it working in Windows
+- get it working in Sublime Text 2, if enough people request it
 - **Improve documentation**
 - Seriously, lots more...
