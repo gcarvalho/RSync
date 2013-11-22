@@ -55,6 +55,8 @@ class RSyncCommand(sublime_plugin.EventListener):
         pass
 
 class STRSHost(dict):
+    def excludes(self):
+        return self.get('excludes', [])
     def host_name(self):
         return self.get('remote_host', False)
     def user_name(self):
@@ -138,10 +140,10 @@ class STRSync:
             (first, second) = (local_file,remote_path) if to_server else (remote_path, local_file)
             call_params = self.call_params(this_host, to_server, [first, second])
             try:
-                self.view.set_status('_rsync_running', 'RSync: {}'.format(this_host.host_name) )
+                self.log('RSync: {}'.format(this_host.host_name()) )
                 self.run_rsync(call_params)
             finally:
-                self.view.erase_status('_rsync_running')
+                self.clear_status
 
     def sync_structure(self):
         local_file = self.view.file_name()
@@ -159,10 +161,10 @@ class STRSync:
             (first, second) = (remote_path + '/', local_path) if self.remote_is_master() else (local_path + '/',remote_path)
             call_params = self.call_params(main_host, True, ['-r', first, second])
             try:
-                self.view.set_status('_rsync_running', 'RSync: {} [FULL SYNC]'.format(main_host.host_name) )
+                self.log('RSync: {} [FULL SYNC]'.format(main_host.host_name()) )
                 self.run_rsync(call_params)
             finally:
-                self.view.erase_status('_rsync_running')
+                self.clear_status
 
     def call_params(self, this_host, to_server=True, others=[]):
         call_params = [rsyncpath ,'-a']
@@ -190,8 +192,18 @@ class STRSync:
             result_mesg = " EXCEPTION: \n{}\n".format(exc_err)
         if stderr:
             result_mesg += "RSyncing returned an error: \n{0}\n ... while syncing {1}".format(stderr.decode("utf-8") ," ".join(call_params))
-        self.show_panel_message(result_mesg)
+            self.show_panel_message(result_mesg)
 
+    def log(self, message):
+        print (message)
+        self.view.set_status('_rsync_running', message )
+
+    def clear_status(self):
+        self.view.erase_status('_rsync_running')
+
+
+
+        
     def show_panel_message(self, message):
         if self.view:
             self.view.output_view = self.view.window().get_output_panel("textarea")
