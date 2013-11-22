@@ -1,7 +1,7 @@
 {
 	// This file is here just to serve as an example of configuration parameters
-	// You really should override these...
-	// The plugin *will not* use this file
+	// You really should override these, and my advice is to do it in your project file
+	// The plugin *will not* use this file, don't bother to change it
 
 	// You can have multiple hosts.
 	// Only one should be marked as "main", the plugin will choose the first
@@ -15,7 +15,7 @@
             // path in remote server. Mandatory
             "remote_path" : "/usr/local/mywork",
             // if this is the "main" server, used in remote-to-local sync
-            "main"		  : true,
+            "main"		  : true, 
             "excludes" : []
         },
 		{
