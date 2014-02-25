@@ -31,6 +31,8 @@
 	],
 	// local path where your work files are located
     "strsync.local_path" : "/Users/jdoe/work",
+    // compare remote/local git hashes to make sure you don't overwrite remote files
+    "strsync.check_remote_git" : false,
     // what do you want to exclude from *all* syncs? usual file patterns. 
     "strsync.excludes" : [],
     // do you want to rsync over ssh. If you're using a remote server, you 

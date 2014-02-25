@@ -11,39 +11,55 @@ DEFAULT_CONF = {
     'strsync.delete_slave'      : True,
     'strsync.remote_is_master'  : True,
     'strsync.excludes'          : [],
+    'strsync.check_remote_git'  : False,
 }
 
 PREF_PREFIX = 'strsync.'
+annoy_on_rsync_error = True
+annoy_on_hash_different = []
+git_hash_per_path = {}
 
-p = Popen(['which', 'rsync'], stdout=PIPE, stderr=PIPE)
-rsyncpath, stderr = p.communicate(None)
-if not rsyncpath or stderr or len(rsyncpath) <= 1:
-    print( " Can't find rsync ... ") ## not trying too hard, though :)
-    rsyncpath = False
-else:
-    rsyncpath = rsyncpath.decode("utf-8")[:-1]
+def run_executable(call_params):
+    result_mesg = ""
+    stderr = False
+    try:
+        p = Popen(call_params, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = p.communicate(None)
+    except Exception as exc_err:
+        result_mesg = " EXCEPTION: \n{}\n".format(exc_err)
+    if stderr or result_mesg:
+        if stderr:
+            result_mesg += "Calling eternal command returned an error: \n{0}\n {1}".format(stderr.decode("utf-8") ," ".join(call_params))
+        print (result_mesg)
+        return (False, result_mesg)
+    else:
+        return (True, stdout.decode("utf-8"))
+
+def get_path_for(executable_name):
+    (ran_ok, executable_path) = run_executable(['which', executable_name])
+    if not ran_ok or not executable_path or len(executable_path) <= 1:
+        print( " Can't find {} ... ".format(executable_name)) ## not trying too hard, though :)
+        return False
+    else:
+        return executable_path[:-1]
+
+rsyncpath = get_path_for('rsync')
+sshpath = get_path_for('ssh')
+gitpath = get_path_for('git')
+
 
 class RsyncTreeCommand(sublime_plugin.WindowCommand):
     def run(sef):
-        # I was trying to do this asynchronously, but this seems to fail ...
-        sublime.set_timeout(
-            STRSync(sublime.active_window().active_view()).sync_structure(), 
-            2)
+        STRSync(sublime.active_window().active_view()).sync_structure()
         
 
 class RsyncFileFromRemoteCommand(sublime_plugin.WindowCommand):
     def run(sef):
-        # I was trying to do this asynchronously, but this seems to fail ...
-        sublime.set_timeout(
-            STRSync(sublime.active_window().active_view()).sync_remote_local(), 
-            2)
+        STRSync(sublime.active_window().active_view()).sync_remote_local()
 
 class RsyncFileToRemoteCommand(sublime_plugin.WindowCommand):
     def run(sef):
-        # I was trying to do this asynchronously, but this seems to fail ...
-        sublime.set_timeout(
-            STRSync(sublime.active_window().active_view()).sync_local_remote(), 
-            2)
+        STRSync(sublime.active_window().active_view()).sync_local_remote()
 
 
 class RSyncCommand(sublime_plugin.EventListener):
@@ -52,7 +68,7 @@ class RSyncCommand(sublime_plugin.EventListener):
     def on_post_save_async(self, view):
         STRSync(view).sync_local_remote()
     def on_activated_async(self, view):
-        pass
+        STRSync(view).check_remote_local_git_hash()
 
 class STRSHost(dict):
     def excludes(self):
@@ -72,14 +88,21 @@ class STRSHost(dict):
     #     return self.prefs('remote_is_master')
     # def delete_slave(self):
     #     return self.prefs('delete_slave')
+    def remote_host(self, relative_path=''):
+        if self:
+            return "{user}{host}".format(
+                            user=self['remote_user'] + '@' if self.get('remote_user', False)  else '',
+                            host=self['remote_host'] if self.get('remote_host', False) else '',
+                            )
+        else:
+            return False
 
     def remote_path(self, relative_path=''):
         if self:
             path = os.path.normpath(self.get('remote_path','')) + relative_path
-            return "{user}{host}{path}".format(
-                            user=self['remote_user'] + '@' if self.get('remote_user', False)  else '',
-                            host=self['remote_host'] + ':' if self.get('remote_host', False) else '',
-                            path=path if self.get('remote_path', False) else '',
+            return "{remote_host}{path}".format(
+                            remote_host=self.remote_host(),
+                            path=':'+ path if self.get('remote_path', False) else '',
                             )
         else:
             return False
@@ -89,7 +112,7 @@ class STRSync:
         self.view = view
 
     #################################    
-    # settings and rpeferences handling 
+    # settings and preferences handling 
     def prefs(self, preference):
         return self.view.settings().get(PREF_PREFIX + preference, DEFAULT_CONF.get(PREF_PREFIX + preference, None))
 
@@ -116,6 +139,38 @@ class STRSync:
 
     #################################
     # the work itself
+    def check_remote_local_git_hash(self):
+        if not self.prefs('check_remote_git'):
+            return
+        (ran_ok, local_hash) = run_executable([gitpath, 'rev-parse', 'HEAD'])
+        if not ran_ok:
+            raise Exception(local_hash)
+        if local_hash in annoy_on_hash_different:
+            return
+        (ran_ok, remote_hash) = run_executable(
+                                    [
+                                        sshpath, 
+                                        self.main_host().remote_host(), 
+                                        'cd {}; git rev-parse HEAD'.format(self.main_host().path()),
+                                    ])
+        if not ran_ok:
+            raise Exception(remote_hash)
+        if remote_hash != local_hash:
+            annoy_on_hash_different.append(local_hash)
+            print ("Remote Git hash ({}) is diferent from local ({})".format(remote_hash, local_hash))
+            self.view.window().show_quick_panel(
+                        [
+                            'Remote Git hash is diferent from local hash. FULL Rsync ?', 
+                            'No, don''t RSync just now. (This can get annoying)'
+                        ],
+                        lambda s: self.handle_hash_is_different(s),
+                        selected_index=1,
+                            )
+
+    def handle_hash_is_different(self, answer):
+        if answer == 0:
+            self.sync_structure()
+
     def sync_local_remote(self):
         self.sync_file()
 
@@ -139,11 +194,8 @@ class STRSync:
                 return
             (first, second) = (local_file,remote_path) if to_server else (remote_path, local_file)
             call_params = self.call_params(this_host, to_server, [first, second])
-            try:
-                self.log('RSync: {}'.format(this_host.host_name()) )
-                self.run_rsync(call_params)
-            finally:
-                self.clear_status
+            self.log_status('RSync: {}'.format(this_host.host_name()) )
+            self.run_rsync(call_params)
 
     def sync_structure(self):
         local_file = self.view.file_name()
@@ -160,11 +212,8 @@ class STRSync:
                 return
             (first, second) = (remote_path + '/', local_path) if self.remote_is_master() else (local_path + '/',remote_path)
             call_params = self.call_params(main_host, True, ['-r', first, second])
-            try:
-                self.log('RSync: {} [FULL SYNC]'.format(main_host.host_name()) )
-                self.run_rsync(call_params)
-            finally:
-                self.clear_status
+            self.log_status('RSync: {} [FULL SYNC: Please wait ... ]'.format(main_host.host_name()) )
+            sublime.set_timeout_async(lambda: self.run_rsync(call_params), 10)
 
     def call_params(self, this_host, to_server=True, others=[]):
         call_params = [rsyncpath ,'-a']
@@ -175,7 +224,10 @@ class STRSync:
         excludes = self.excludes()
         excludes.extend(this_host.excludes())
 
-        #damn it, I've been coding in perl too long
+        # damn it, I've been coding in perl too long
+        # this will introduce a '--exclude' for each excluded path.
+        # for a list such as [ '/bla/ble', '/doo/bi', '/a/b/'], the end result 
+        # will be something like ['--exclude', '/bla/ble','--exclude', '/doo/bi', '--exclude', '/a/b/']
         excludes = [ item for this_exclude in excludes for item in  ['--exclude', '{}'.format(this_exclude)]] 
 
         call_params.extend(excludes)
@@ -184,32 +236,54 @@ class STRSync:
 
 
     def run_rsync(self,call_params):
-        result_mesg = ""
-        try:
-            p = Popen(call_params, stdout=PIPE, stderr=PIPE)
-            stdout, stderr = p.communicate(None)
-        except Exception as exc_err:
-            result_mesg = " EXCEPTION: \n{}\n".format(exc_err)
-        if stderr:
-            result_mesg += "RSyncing returned an error: \n{0}\n ... while syncing {1}".format(stderr.decode("utf-8") ," ".join(call_params))
-            self.show_panel_message(result_mesg)
+        global annoy_on_rsync_error
+        (rsynced_ok, strMessage) = run_executable(call_params)
+        if not rsynced_ok:
+            if annoy_on_rsync_error:
+                self.log_error_message(strMessage)
+                self.view.window().show_quick_panel(
+                        [
+                            'Stop annoying me, for now, about network errors (a successful RSync will reset this) ', 
+                            # 'Ignore network errors for this Sublime session (you''ll need to reload to reset this)', 
+                            'Oh... golly! Please poke me each time this happens.'
+                        ],
+                        lambda s: self.handle_error_reponse(s),
+                        selected_index=0,
+                            )
+                # self.view.window().show_input_panel('Unable to RSync. Should I stop bothering you with this? (yes/no):', 'No', lambda s: self.handle_error_reponse_input(s), None, None)
+        else:
+            annoy_on_rsync_error = True
+        print ("End rsync ")
+        self.clear_status()
 
-    def log(self, message):
+    def handle_error_reponse(self, answer):
+        global annoy_on_rsync_error
+        if answer == 0:
+            annoy_on_rsync_error = False
+
+    # def handle_error_reponse_input(self, answer):
+    #     global annoy_on_rsync_error
+    #     if answer.upper() in ['Y', 'YES']:
+    #         annoy_on_rsync_error = False
+
+    def log_status(self, message):
         print (message)
-        self.view.set_status('_rsync_running', message )
+        self.view.set_status('_rsync_running{}'.format(self), message )
 
     def clear_status(self):
-        self.view.erase_status('_rsync_running')
+        old_status = self.view.get_status('_rsync_running{}'.format(self))
+        self.view.set_status('_rsync_running{}'.format(self), 'Ended [{}]  '.format(old_status))
+        sublime.set_timeout_async(lambda: self.view.erase_status('_rsync_running{}'.format(self)), 2000)
+        
 
 
 
         
-    def show_panel_message(self, message):
+    def log_error_message(self, message):
         if self.view:
             self.view.output_view = self.view.window().get_output_panel("textarea")
             self.view.window().run_command("show_panel", {"panel": "output.textarea"})
             self.view.output_view.set_read_only(False)
-            self.view.output_view.set_syntax_file("Packages/Plain Text/Plain Text.tmLanguage")
             self.view.output_view.run_command("append", {"characters": message})
             self.view.output_view.set_read_only(True)
         print(message)
