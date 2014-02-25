@@ -145,8 +145,6 @@ class STRSync:
         (ran_ok, local_hash) = run_executable([gitpath, 'rev-parse', 'HEAD'])
         if not ran_ok:
             raise Exception(local_hash)
-        if local_hash in annoy_on_hash_different:
-            return
         (ran_ok, remote_hash) = run_executable(
                                     [
                                         sshpath, 
@@ -155,8 +153,10 @@ class STRSync:
                                     ])
         if not ran_ok:
             raise Exception(remote_hash)
+        if remote_hash in annoy_on_hash_different:
+            return
         if remote_hash != local_hash:
-            annoy_on_hash_different.append(local_hash)
+            annoy_on_hash_different.append(remote_hash)
             print ("Remote Git hash ({}) is diferent from local ({})".format(remote_hash, local_hash))
             self.view.window().show_quick_panel(
                         [
