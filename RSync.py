@@ -110,6 +110,7 @@ class STRSHost(dict):
 class STRSync:
     def __init__(self, view=sublime.active_window().active_view()):
         self.view = view
+        self.remote_hash = False
 
     #################################    
     # settings and preferences handling 
@@ -145,19 +146,18 @@ class STRSync:
         (ran_ok, local_hash) = run_executable([gitpath, 'rev-parse', 'HEAD'])
         if not ran_ok:
             raise Exception(local_hash)
-        (ran_ok, remote_hash) = run_executable(
+        (ran_ok, self.remote_hash) = run_executable(
                                     [
                                         sshpath, 
                                         self.main_host().remote_host(), 
                                         'cd {}; git rev-parse HEAD'.format(self.main_host().path()),
                                     ])
         if not ran_ok:
-            raise Exception(remote_hash)
-        if remote_hash in annoy_on_hash_different:
+            raise Exception(self.remote_hash)
+        if self.remote_hash in annoy_on_hash_different:
             return
-        if remote_hash != local_hash:
-            annoy_on_hash_different.append(remote_hash)
-            print ("Remote Git hash ({}) is diferent from local ({})".format(remote_hash, local_hash))
+        if self.remote_hash != local_hash:
+            print ("Remote Git hash ({}) is diferent from local ({})".format(self.remote_hash, local_hash))
             self.view.window().show_quick_panel(
                         [
                             'Remote Git hash is diferent from local hash. FULL Rsync ?', 
@@ -168,6 +168,8 @@ class STRSync:
                             )
 
     def handle_hash_is_different(self, answer):
+        if answer in [0, 1]:
+            annoy_on_hash_different.append(self.remote_hash)
         if answer == 0:
             self.sync_structure()
 
