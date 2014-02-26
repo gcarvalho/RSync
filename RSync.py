@@ -14,6 +14,17 @@ DEFAULT_CONF = {
     'strsync.check_remote_git'  : False,
 }
 
+# SPINNER_RESOURCES = [
+#     '[=       ]', 
+#     '[ =      ]', 
+#     '[  =     ]', 
+#     '[   =    ]', 
+#     '[    =   ]', 
+#     '[     =  ]', 
+#     '[      = ]', 
+#     '[       =]', 
+#     ]
+
 PREF_PREFIX = 'strsync.'
 annoy_on_rsync_error = True
 annoy_on_hash_different = []
@@ -111,6 +122,9 @@ class STRSync:
     def __init__(self, view=sublime.active_window().active_view()):
         self.view = view
         self.remote_hash = False
+        # self.spinner_step = 1
+        # self.spinner_direction = 1
+        # self.spinner_running = False
 
     #################################    
     # settings and preferences handling 
@@ -252,7 +266,6 @@ class STRSync:
                         lambda s: self.handle_error_reponse(s),
                         selected_index=0,
                             )
-                # self.view.window().show_input_panel('Unable to RSync. Should I stop bothering you with this? (yes/no):', 'No', lambda s: self.handle_error_reponse_input(s), None, None)
         else:
             annoy_on_rsync_error = True
         print ("End rsync ")
@@ -263,24 +276,39 @@ class STRSync:
         if answer == 0:
             annoy_on_rsync_error = False
 
-    # def handle_error_reponse_input(self, answer):
-    #     global annoy_on_rsync_error
-    #     if answer.upper() in ['Y', 'YES']:
-    #         annoy_on_rsync_error = False
 
     def log_status(self, message):
         print (message)
         self.view.set_status('_rsync_running{}'.format(self), message )
+        # self.start_spinner()
 
     def clear_status(self):
         old_status = self.view.get_status('_rsync_running{}'.format(self))
         self.view.set_status('_rsync_running{}'.format(self), 'Ended [{}]  '.format(old_status))
+        # self.stop_spinner()
         sublime.set_timeout_async(lambda: self.view.erase_status('_rsync_running{}'.format(self)), 2000)
         
 
+    # def stop_spinner(self):
+    #     self.spinner_running = False
+    # def start_spinner(self):
+    #     self.spinner_running = True
+    #     sublime.set_timeout_async(lambda: self.progress_spinner(), 100)
+
+    # def progress_spinner(self):
+    #     print ("running")
+    #     if not self.spinner_running :
+    #         self.view.erase_status('__rsync_spinner{}'.format(self))
+    #         return
+
+    #     self.spinner_step += self.spinner_direction
+    #     if self.spinner_step in [-1 , len(SPINNER_RESOURCES)]:
+    #         self.spinner_direction = self.spinner_direction * -1
+    #         self.spinner_step += self.spinner_direction * 2
+    #     self.view.set_status('__rsync_spinner{}'.format(self), SPINNER_RESOURCES[self.spinner_step] )
+    #     sublime.set_timeout_async(lambda: self.progress_spinner(), 100)
 
 
-        
     def log_error_message(self, message):
         if self.view:
             self.view.output_view = self.view.window().get_output_panel("textarea")
