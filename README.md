@@ -52,15 +52,19 @@ Now change a file and save it. If properly setup (and if you didn't stumble on a
 
 ## To do
 - Lots
-x (update: will now check local vs remote git hashes, assuming you have git isntaled) add some more checks to try and stop you from overwriting changes that you want to keep
 - (new) add some more checks to try and stop you from overwriting changes that you want to keep, WHICH DON'T NEED GIT :)
 - add hooks for running commands before/after sync
 - add more settings to be both general and by host
-x (update: much improved) improve eficiency: we're calling rsync --way-- too aften
 - sync tree on project open
 - some sort of configuration wizard would be nice...
-x (update: now pops up a warning which you can ignore) add a "don't bug me for now" on error. When away from a network, saving gets annoying...
 - get it working in Windows
 - get it working in Sublime Text 2, if enough people request it
 - **Improve documentation**
 - Seriously, lots more...
+
+### Done
+- (update: will now check local vs remote git hashes, assuming you have git isntaled) add some more checks to try and stop you from overwriting changes that you want to keep
+- (update: much improved) improve eficiency: we're calling rsync --way-- too aften
+- (update: now pops up a warning which you can ignore) add a "don't bug me for now" on error. When away from a network, saving gets annoying...
+
+
