@@ -144,7 +144,8 @@ class STRSync:
     def excludes(self):
         return self.prefs('excludes')
     def local_path(self):
-        return self.prefs('local_path')
+        this_local_path = self.prefs('local_path')
+        return os.path.normpath(this_local_path) if this_local_path else ''
     def use_ssh(self):
         return self.prefs('use_ssh')
     def remote_is_master(self):
@@ -155,6 +156,8 @@ class STRSync:
     #################################
     # the work itself
     def check_remote_local_git_hash(self):
+        if not self.valid_file_to_process():
+            return
         if not self.prefs('check_remote_git'):
             return
         (ran_ok, local_hash) = run_executable([gitpath, 'rev-parse', 'HEAD'])
@@ -193,16 +196,23 @@ class STRSync:
     def sync_remote_local(self):
         self.sync_file(False)
 
+    def valid_file_to_process(self):
+        local_file = self.view.file_name()
+        local_path = self.local_path()
+        if not local_file or not rsyncpath or not local_path:
+            return False
+        if not local_path.upper() in local_file.upper():
+            return False
+        return True
+
     def sync_file(self, to_server=True):
         # Need to add some checks on whether file changed before syncing
         # right now, we sync way too often...
+        if not self.valid_file_to_process():
+            return
         local_file = self.view.file_name()
         local_path = self.local_path()
-        local_path = os.path.normpath(local_path) if local_path else ''
-        if not local_file or not rsyncpath or not local_path:
-            return
-        if not local_path.upper() in local_file.upper():
-            return
+
         relative_path = local_file[len(os.path.normpath(local_path)) : ]
         for this_host in self.hosts():
             remote_path = this_host.remote_path(relative_path)
