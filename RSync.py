@@ -15,14 +15,14 @@ DEFAULT_CONF = {
 }
 
 # SPINNER_RESOURCES = [
-#     '[=       ]', 
-#     '[ =      ]', 
-#     '[  =     ]', 
-#     '[   =    ]', 
-#     '[    =   ]', 
-#     '[     =  ]', 
-#     '[      = ]', 
-#     '[       =]', 
+#     '[=       ]',
+#     '[ =      ]',
+#     '[  =     ]',
+#     '[   =    ]',
+#     '[    =   ]',
+#     '[     =  ]',
+#     '[      = ]',
+#     '[       =]',
 #     ]
 
 PREF_PREFIX = 'strsync.'
@@ -62,7 +62,7 @@ gitpath = get_path_for('git')
 class RsyncTreeCommand(sublime_plugin.WindowCommand):
     def run(sef):
         STRSync(sublime.active_window().active_view()).sync_structure()
-        
+
 
 class RsyncFileFromRemoteCommand(sublime_plugin.WindowCommand):
     def run(sef):
@@ -117,7 +117,7 @@ class STRSHost(dict):
                             )
         else:
             return False
-            
+
 class STRSync:
     def __init__(self, view=sublime.active_window().active_view()):
         self.view = view
@@ -126,8 +126,8 @@ class STRSync:
         # self.spinner_direction = 1
         # self.spinner_running = False
 
-    #################################    
-    # settings and preferences handling 
+    #################################
+    # settings and preferences handling
     def prefs(self, preference):
         return self.view.settings().get(PREF_PREFIX + preference, DEFAULT_CONF.get(PREF_PREFIX + preference, None))
 
@@ -236,7 +236,7 @@ class STRSync:
         if self.use_ssh():
             call_params.append('-e ssh')
         if not( to_server and self.remote_is_master()) and self.delete_slave():
-            call_params.append('--delete')            
+            call_params.append('--delete')
         excludes = self.excludes()
         excludes.extend(this_host.excludes())
 
