@@ -214,20 +214,18 @@ class STRSync:
             self.run_rsync(call_params)
 
     def sync_structure(self):
+        if not self.valid_file_to_process():
+            return
         local_file = self.view.file_name()
         local_path = self.local_path()
-        local_path = os.path.normpath(local_path) if local_path else ''
-        if not local_file or not rsyncpath or not local_path:
-            return
-        if not local_path.upper() in local_file.upper():
-            return
+
         main_host = self.main_host()
         if main_host:
             remote_path = main_host.remote_path()
             if not remote_path:
                 return
             (first, second) = (remote_path + '/', local_path) if self.remote_is_master() else (local_path + '/',remote_path)
-            call_params = self.call_params(main_host, True, ['-r', first, second])
+            call_params = self.call_params(main_host, not self.remote_is_master(), ['-r', first, second])
             self.log_status('RSync: {} [FULL SYNC: Please wait ... ]'.format(main_host.host_name()) )
             sublime.set_timeout_async(lambda: self.run_rsync(call_params), 10)
 
