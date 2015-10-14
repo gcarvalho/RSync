@@ -1,5 +1,11 @@
 # RSync for Sublime Text 3
 
+## UPDATE: 
+I haven't touched this in ages, mostly due to not using it anymore (also: new kid) and there aren't that many people using it for me to invest in support. If you still feel that this is really useful for you, feel free to fork or use one of the forks done by others.
+BTW: For my flow, having a build command that rsyncs on ctrl/cmd-B is simpler, faster and less error-prone. 
+
+
+
 This is a Sublime Text plugin to synchronise files with a remote server using [rsync](http://en.wikipedia.org/wiki/Rsync). RSync is a whole lot faster and more eficient than copying everything, since it tries to identify the diferences and synchronise only these diferences.
 
 This plugin has been in daily use for about 3 months, but keep in mind it has a small user base and there might be hidden bugs. This cannot be emphasized enough.
